@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Water Quality Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #0078d7;
+      --secondary: #00b7c2;
+      --success: #4caf50;
+      --warning: #ff9800;
+      --danger: #f44336;
+      --light: #f5f7fa;
+      --dark: #333;
+      --gray: #6c757d;
+      --ultra-pure: #9c27b0;
+      --excellent: #4caf50;
+      --good: #8bc34a;
+      --fair: #ff9800;
+      --poor: #ff5722;
+      --unacceptable: #f44336;
+      --hazardous: #d32f2f;
+      --no-data: #6c757d;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #f0f2f5;
+      color: var(--dark);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+
+    /* Enhanced quality status colors */
+    .status-ultra-pure { background-color: var(--ultra-pure); }
+    .status-excellent { background-color: var(--excellent); }
+    .status-good { background-color: var(--good); }
+    .status-fair { background-color: var(--fair); }
+    .status-poor { background-color: var(--poor); }
+    .status-unacceptable { background-color: var(--unacceptable); }
+    .status-hazardous { background-color: var(--hazardous); }
+    .status-no-data { background-color: var(--no-data); }
+
+    .metric {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 10px 0;
+    }
+
+    .metric-label {
+      font-size: 0.9rem;
+      color: var(--gray);
+    }
+
+    .chart-container {
+      height: 300px;
+      margin-top: 15px;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .btn-secondary {
+      background-color: var(--secondary);
+      color: white;
+    }
+
+    .btn-success {
+      background-color: var(--success);
+      color: white;
+    }
+
+    .btn-warning {
+      background-color: var(--warning);
+      color: white;
+    }
+
+    .btn:disabled {
+      background-color: var(--gray);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .btn:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-2px);
+    }
+
+    .recommendation {
+      background-color: #e8f4fd;
+      border-left: 4px solid var(--primary);
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 0 6px 6px 0;
+    }
+
+    .suggestion {
+      padding: 12px;
+      margin: 8px 0;
+      background-color: #f8f9fa;
+      border-radius: 6px;
+      border-left: 4px solid var(--primary);
+    }
+
+    .suggestion.urgent {
+      background-color: #ffebee;
+      border-left: 4px solid var(--danger);
+      color: #c62828;
+      font-weight: bold;
+    }
+
+    .questionnaire {
+      margin-top: 20px;
+    }
+
+    .question {
+      margin-bottom: 20px;
+    }
+
+    .question label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .option {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .option input {
+      display: none;
+    }
+
+    .option label {
+      display: block;
+      padding: 10px;
+      background-color: #f5f7fa;
+      border-radius: 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .option input:checked + label {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .prediction {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 20px;
+    }
+
+    .prediction h3 {
+      margin-bottom: 15px;
+    }
+
+    .prediction-metric {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background-color: rgba(255,255,255,0.3);
+      border-radius: 4px;
+      margin-top: 5px;
+      overflow: hidden;
+    }
+
+    .progress {
+      height: 100%;
+      border-radius: 4px;
+    }
+
+    .progress-excellent { background-color: var(--excellent); width: 90%; }
+    .progress-good { background-color: var(--good); width: 70%; }
+    .progress-fair { background-color: var(--fair); width: 50%; }
+    .progress-poor { background-color: var(--poor); width: 30%; }
+
+    .water-parameters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .parameter {
+      text-align: center;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .parameter-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 5px 0;
+    }
+
+    .parameter-label {
+      font-size: 0.8rem;
+      color: var(--gray);
+    }
+
+    .parameter-good { border-left: 4px solid var(--success); }
+    .parameter-warning { border-left: 4px solid var(--warning); }
+    .parameter-danger { border-left: 4px solid var(--danger); }
+
+    .quality-details h4 {
+      margin: 15px 0 5px 0;
+      color: var(--primary);
+      font-size: 0.9rem;
+    }
+
+    .quality-details p {
+      margin-bottom: 10px;
+      padding: 8px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+    }
+
+    .standards-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .standards-table th,
+    .standards-table td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .standards-table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      padding: 20px;
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
+
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab.active {
+      border-bottom: 3px solid var(--primary);
+      font-weight: 600;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .comparison-chart {
+      height: 250px;
+      margin-top: 15px;
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      border-radius: 6px;
+      margin: 10px 0;
+      z-index: 1000;
+      max-width: 400px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .notification.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .notification.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .notification.warning {
+      background-color: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+
+    .firebase-status {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      margin-left: 10px;
+    }
+
+    .firebase-connected {
+      background-color: var(--success);
+      color: white;
+    }
+
+    .firebase-disconnected {
+      background-color: var(--danger);
+      color: white;
+    }
+
+    .no-data-message {
+      text-align: center;
+      padding: 40px;
+      color: var(--gray);
+    }
+
+    .sensor-input-form {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    .risk-level {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+
+    .risk-unknown { background-color: var(--no-data); color: white; }
+    .risk-low { background-color: var(--excellent); color: white; }
+    .risk-very-low { background-color: var(--good); color: white; }
+    .risk-moderate { background-color: var(--fair); color: white; }
+    .risk-high { background-color: var(--poor); color: white; }
+    .risk-very-high { background-color: var(--unacceptable); color: white; }
+    .risk-critical { background-color: var(--hazardous); color: white; }
+
+    @media (max-width: 768px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+      }
+
+      .options {
+        flex-direction: column;
+      }
+
+      .tabs {
+        overflow-x: auto;
+      }
+
+      .action-buttons {
+        justify-content: center;
+      }
+
+      .notification {
+        left: 20px;
+        right: 20px;
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-content">
+        <div>
+          <h1>💧 Smart Water Quality Dashboard</h1>
+          <p class="subtitle">Real-time monitoring, prediction, and recommendations for your water quality</p>
+        </div>
+        <div>
+          <span class="firebase-status {{ 'firebase-connected' if firebase_status else 'firebase-disconnected' }}">
+            {{ 'Firebase Connected' if firebase_status else 'Firebase Disconnected' }}
+          </span>
+        </div>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-primary" id="questionnaireBtn">Water Quality Check</button>
+        <button class="btn btn-secondary" id="refreshBtn">Refresh Data</button>
+        <button class="btn btn-success" id="showSensorFormBtn">Add Sensor Reading</button>
+      </div>
+    </header>
+
+    {% if not has_data %}
+    <div class="no-data-message">
+      <h2>No Sensor Data Available</h2>
+      <p>Connect your sensors or add manual readings to see water quality data.</p>
+    </div>
+    {% endif %}
+
+    <div class="tabs">
+      <div class="tab active" data-tab="overview">Overview</div>
+<!--      <div class="tab" data-tab="detailed">Detailed Analysis</div>-->
+      <div class="tab" data-tab="comparison">Quality Standards</div>
+    </div>
+
+    <!-- Overview Tab -->
+    <div class="tab-content active" id="overview-tab">
+      <div class="dashboard-grid">
+        <!-- Current Status Card -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Current Water Quality</h2>
+            <div>
+              <span class="status-indicator status-{{ quality_info.class }}"></span>
+              <span id="qualityStatus">{{ quality_info.level }}</span>
+              <span class="risk-level risk-{{ quality_info.risk_level|lower|replace(' ', '-') }}">
+                {{ quality_info.risk_level }} Risk
+              </span>
+            </div>
+          </div>
+          <div>
+            <div class="metric" id="currentTds">{{ latest_tds if latest_tds != 0 else '-' }}</div>
+            <div class="metric-label">TDS (ppm)</div>
+          </div>
+          <div>
+            <div class="metric" id="currentTemp">{{ latest_temp if latest_temp != 0 else '-' }}</div>
+            <div class="metric-label">Temperature (°C)</div>
+          </div>
+<!--          <div class="water-parameters">-->
+<!--            <div class="parameter {% if additional_params.ph != '-' and 6.5 <= additional_params.ph <= 8.5 %}parameter-good{% else %}parameter-warning{% endif %}">-->
+<!--              <div class="parameter-value" id="phValue">{{ additional_params.ph }}</div>-->
+<!--              <div class="parameter-label">pH Level</div>-->
+<!--            </div>-->
+<!--            <div class="parameter {% if additional_params.turbidity != '-' and additional_params.turbidity < 5 %}parameter-good{% else %}parameter-warning{% endif %}">-->
+<!--              <div class="parameter-value" id="turbidityValue">{{ additional_params.turbidity }}</div>-->
+<!--              <div class="parameter-label">Turbidity (NTU)</div>-->
+<!--            </div>-->
+<!--            <div class="parameter {% if additional_params.chlorine != '-' and additional_params.chlorine < 4 %}parameter-good{% else %}parameter-warning{% endif %}">-->
+<!--              <div class="parameter-value" id="chlorineValue">{{ additional_params.chlorine }}</div>-->
+<!--              <div class="parameter-label">Chlorine (mg/L)</div>-->
+<!--            </div>-->
+<!--          </div>-->
+        </div>
+
+        <!-- Enhanced Quality Information Card -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Water Quality Analysis</h2>
+          </div>
+          <div class="quality-details">
+            <h4>Quality Description:</h4>
+            <p>{{ quality_info.description }}</p>
+
+            <h4>Drinking Safety:</h4>
+            <p>{{ quality_info.drinking_safety }}</p>
+
+            <h4>Health Impact:</h4>
+            <p>{{ quality_info.health_impact }}</p>
+
+            <h4>Recommended Usage:</h4>
+            <p>{{ quality_info.usage }}</p>
+          </div>
+        </div>
+
+        <!-- Prediction Card -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Quality Prediction</h2>
+          </div>
+          <div class="prediction">
+            <h3>Next 24 Hours Forecast</h3>
+            <div class="prediction-metric">
+              <span>Excellent</span>
+              <span id="predictionExcellent">-</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress progress-excellent" id="progressExcellent"></div>
+            </div>
+            <div class="prediction-metric">
+              <span>Good</span>
+              <span id="predictionGood">-</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress progress-good" id="progressGood"></div>
+            </div>
+            <div class="prediction-metric">
+              <span>Fair</span>
+              <span id="predictionFair">-</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress progress-fair" id="progressFair"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historical Data Card -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Historical Trends</h2>
+          </div>
+          <div class="chart-container">
+            <canvas id="historyChart"></canvas>
+          </div>
+          {% if not has_data %}
+          <div class="no-data-message">
+            <p>No historical data available</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Temperature Recommendations Card -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Temperature Analysis</h2>
+          </div>
+          <div class="recommendation-list">
+            {% for recommendation in temp_recommendations %}
+            <div class="recommendation">
+              {{ recommendation }}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Improvement Suggestions Card -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Improvement Suggestions</h2>
+          </div>
+          <div class="suggestion-list">
+            {% for suggestion in improvement_suggestions %}
+            <div class="suggestion {% if 'IMMEDIATELY' in suggestion or 'CRITICAL' in suggestion or 'URGENT' in suggestion %}urgent{% endif %}">
+              {{ suggestion }}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual Sensor Input Form -->
+      <div class="card sensor-input-form" id="sensorInputForm" style="display: none;">
+        <div class="card-header">
+          <h2 class="card-title">Add Sensor Reading</h2>
+          <button class="btn btn-secondary" id="closeSensorFormBtn">Close</button>
+        </div>
+        <div class="form-group">
+          <label for="tdsInput">TDS Value (ppm)</label>
+          <input type="number" id="tdsInput" placeholder="Enter TDS value" step="0.1" min="0">
+        </div>
+        <div class="form-group">
+          <label for="tempInput">Temperature (°C)</label>
+          <input type="number" id="tempInput" placeholder="Enter temperature" step="0.1" min="0">
+        </div>
+        <div class="action-buttons">
+          <button class="btn btn-success" id="submitSensorDataBtn">Submit Reading</button>
+          <button class="btn btn-secondary" id="cancelSensorFormBtn">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Questionnaire Section -->
+      <div class="card questionnaire" id="questionnaireSection">
+        <div class="card-header">
+          <h2 class="card-title">Water Quality Assessment</h2>
+          <button class="btn btn-secondary" id="closeQuestionnaireBtn">Close</button>
+        </div>
+        <div id="questionnaireContent">
+          <div class="question">
+            <label>1. What is the primary source of your drinking water?</label>
+            <div class="options">
+              <div class="option">
+                <input type="radio" id="source1" name="source" value="municipal">
+                <label for="source1">Municipal Supply</label>
+              </div>
+              <div class="option">
+                <input type="radio" id="source2" name="source" value="well">
+                <label for="source2">Well Water</label>
+              </div>
+              <div class="option">
+                <input type="radio" id="source3" name="source" value="bottled">
+                <label for="source3">Bottled Water</label>
+              </div>
+              <div class="option">
+                <input type="radio" id="source4" name="source" value="filtered">
+                <label for="source4">Filtered at Home</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="question">
+            <label>2. Have you noticed any changes in water taste, odor, or appearance?</label>
+            <div class="options">
+              <div class="option">
+                <input type="radio" id="change1" name="change" value="no">
+                <label for="change1">No Changes</label>
+              </div>
+              <div class="option">
+                <input type="radio" id="change2" name="change" value="slight">
+                <label for="change2">Slight Changes</label>
+              </div>
+              <div class="option">
+                <input type="radio" id="change3" name="change" value="noticeable">
+                <label for="change3">Noticeable Changes</label>
+              </div>
+              <div class="option">
+                <input type="radio" id="change4" name="change" value="significant">
+                <label for="change4">Significant Changes</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="question">
+            <label>3. When was the last time you had your water professionally tested?</label>
+            <div class="options">
+              <div class="option">
+                <input type="radio" id="test1" name="test" value="3months">
+                <label for="test1">Within 3 Months</label>
+              </div>
+              <div class="option">
+                <input type="radio" id="test2" name="test" value="6months">
+                <label for="test2">6-12 Months Ago</label>
+              </div>
+              <div class="option">
+                <input type="radio" id="test3" name="test" value="1year">
+                <label for="test3">Over 1 Year Ago</label>
+              </div>
+              <div class="option">
+                <input type="radio" id="test4" name="test" value="never">
+                <label for="test4">Never Tested</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="question">
+            <label>4. Do you use any water filtration system at home?</label>
+            <div class="options">
+              <div class="option">
+                <input type="radio" id="filter1" name="filter" value="ro">
+                <label for="filter1">RO System</label>
+              </div>
+              <div class="option">
+                <input type="radio" id="filter2" name="filter" value="carbon">
+                <label for="filter2">Carbon Filter</label>
+              </div>
+              <div class="option">
+                <input type="radio" id="filter3" name="filter" value="uv">
+                <label for="filter3">UV Purifier</label>
+              </div>
+              <div class="option">
+                <input type="radio" id="filter4" name="filter" value="none">
+                <label for="filter4">No Filtration</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button class="btn btn-primary" id="submitQuestionnaire">Submit Assessment</button>
+            <button class="btn btn-secondary" id="cancelQuestionnaire">Cancel</button>
+          </div>
+        </div>
+
+        <div class="result" id="questionnaireResult">
+          <h3>Your Water Quality Assessment Result</h3>
+          <div id="assessmentScore">Score: -/100</div>
+          <div id="assessmentRecommendations">
+            <p>Complete the questionnaire to get personalized recommendations.</p>
+          </div>
+          <button class="btn btn-primary" id="closeResult">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Analysis Tab -->
+    <div class="tab-content" id="detailed-tab">
+      <div class="dashboard-grid">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Detailed Water Parameters</h2>
+          </div>
+          <div class="water-parameters">
+            <div class="parameter">
+              <div class="parameter-value">{{ additional_params.ph }}</div>
+              <div class="parameter-label">pH Level</div>
+              <div class="parameter-note">Ideal: 6.5-8.5</div>
+            </div>
+            <div class="parameter">
+              <div class="parameter-value">{{ additional_params.turbidity }}</div>
+              <div class="parameter-label">Turbidity (NTU)</div>
+              <div class="parameter-note">Ideal: < 5 NTU</div>
+            </div>
+            <div class="parameter">
+              <div class="parameter-value">{{ additional_params.chlorine }}</div>
+              <div class="parameter-label">Chlorine (mg/L)</div>
+              <div class="parameter-note">Ideal: < 4 mg/L</div>
+            </div>
+            <div class="parameter">
+              <div class="parameter-value">{{ additional_params.hardness }}</div>
+              <div class="parameter-label">Hardness (mg/L)</div>
+              <div class="parameter-note">Ideal: < 300 mg/L</div>
+            </div>
+            <div class="parameter">
+              <div class="parameter-value">{{ additional_params.alkalinity }}</div>
+              <div class="parameter-label">Alkalinity (mg/L)</div>
+              <div class="parameter-note">Ideal: 20-200 mg/L</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">TDS Level Interpretation</h2>
+          </div>
+          <div class="quality-scale">
+            <div class="scale-item ultra-pure">
+              <span class="scale-label">Ultra Pure</span>
+              <span class="scale-range">0-50 ppm</span>
+            </div>
+            <div class="scale-item excellent">
+              <span class="scale-label">Excellent</span>
+              <span class="scale-range">50-150 ppm</span>
+            </div>
+            <div class="scale-item good">
+              <span class="scale-label">Good</span>
+              <span class="scale-range">150-250 ppm</span>
+            </div>
+            <div class="scale-item fair">
+              <span class="scale-label">Fair</span>
+              <span class="scale-range">250-350 ppm</span>
+            </div>
+            <div class="scale-item poor">
+              <span class="scale-label">Poor</span>
+              <span class="scale-range">350-500 ppm</span>
+            </div>
+            <div class="scale-item unacceptable">
+              <span class="scale-label">Unacceptable</span>
+              <span class="scale-range">500-900 ppm</span>
+            </div>
+            <div class="scale-item hazardous">
+              <span class="scale-label">Hazardous</span>
+              <span class="scale-range">900+ ppm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quality Standards Tab -->
+    <div class="tab-content" id="comparison-tab">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">International Water Quality Standards</h2>
+        </div>
+        <div class="standards-content">
+          {% for standard_name, standards in quality_standards.items() %}
+          <h3>{{ standard_name }}</h3>
+          <table class="standards-table">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Standard</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for param, value in standards.items() %}
+              <tr>
+                <td>{{ param }}</td>
+                <td>{{ value }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>Smart Water Quality Monitoring System | Real-time sensor data monitoring</p>
+      <p>For concerns about your water quality, contact your local water authority.</p>
+    </footer>
+  </div>
+
+  <script>
+    // DOM Elements
+    const questionnaireBtn = document.getElementById('questionnaireBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const showSensorFormBtn = document.getElementById('showSensorFormBtn');
+    const closeSensorFormBtn = document.getElementById('closeSensorFormBtn');
+    const submitSensorDataBtn = document.getElementById('submitSensorDataBtn');
+    const cancelSensorFormBtn = document.getElementById('cancelSensorFormBtn');
+    const questionnaireSection = document.getElementById('questionnaireSection');
+    const closeQuestionnaireBtn = document.getElementById('closeQuestionnaireBtn');
+    const submitQuestionnaire = document.getElementById('submitQuestionnaire');
+    const cancelQuestionnaire = document.getElementById('cancelQuestionnaire');
+    const questionnaireResult = document.getElementById('questionnaireResult');
+    const closeResult = document.getElementById('closeResult');
+    const sensorInputForm = document.getElementById('sensorInputForm');
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    // Chart Instances
+    let historyChart;
+
+    // Initialize Dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+      loadData();
+      initializeCharts();
+      setupEventListeners();
+      // Hide questionnaire initially
+      questionnaireSection.style.display = 'none';
+      questionnaireResult.style.display = 'none';
+    });
+
+    function setupEventListeners() {
+      questionnaireBtn.addEventListener('click', showQuestionnaire);
+      refreshBtn.addEventListener('click', loadData);
+      showSensorFormBtn.addEventListener('click', showSensorForm);
+      closeSensorFormBtn.addEventListener('click', hideSensorForm);
+      submitSensorDataBtn.addEventListener('click', submitSensorData);
+      cancelSensorFormBtn.addEventListener('click', hideSensorForm);
+      closeQuestionnaireBtn.addEventListener('click', hideQuestionnaire);
+      submitQuestionnaire.addEventListener('click', submitAssessment);
+      cancelQuestionnaire.addEventListener('click', hideQuestionnaire);
+      closeResult.addEventListener('click', hideResult);
+
+      // Tab functionality
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const tabId = tab.getAttribute('data-tab');
+
+          // Update active tab
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+
+          // Show corresponding content
+          tabContents.forEach(content => {
+            content.classList.remove('active');
+            if (content.id === `${tabId}-tab`) {
+              content.classList.add('active');
+            }
+          });
+        });
+      });
+    }
+
+    async function loadData() {
+      try {
+        const response = await fetch('/data');
+        const data = await response.json();
+        updateDashboard(data);
+        showNotification('Data refreshed successfully!', 'success');
+      } catch (error) {
+        console.error('Error loading data:', error);
+        showNotification('Error loading data from server.', 'error');
+      }
+    }
+
+    function updateDashboard(data) {
+      if (data && data.length > 0) {
+        const latest = data[data.length - 1];
+        document.getElementById('currentTds').textContent = latest.tds;
+        document.getElementById('currentTemp').textContent = latest.temperature;
+
+        // Update quality status
+        updateQualityStatus(latest.tds);
+
+        // Update prediction based on current data
+        updatePrediction(latest.tds);
+
+        // Update charts
+        updateCharts(data);
+      } else {
+        // No data available
+        document.getElementById('currentTds').textContent = '-';
+        document.getElementById('currentTemp').textContent = '-';
+        updatePrediction(0);
+      }
+    }
+
+    function updateQualityStatus(tds) {
+      const statusElement = document.getElementById('qualityStatus');
+      const statusIndicator = document.querySelector('.status-indicator');
+
+      let status, statusClass;
+
+      if (tds === 0 || tds === '-') {
+        status = "No Data";
+        statusClass = "no-data";
+      } else if (tds < 50) {
+        status = "Ultra Pure";
+        statusClass = "ultra-pure";
+      } else if (tds < 150) {
+        status = "Excellent";
+        statusClass = "excellent";
+      } else if (tds < 250) {
+        status = "Good";
+        statusClass = "good";
+      } else if (tds < 350) {
+        status = "Fair";
+        statusClass = "fair";
+      } else if (tds < 500) {
+        status = "Poor";
+        statusClass = "poor";
+      } else if (tds < 900) {
+        status = "Unacceptable";
+        statusClass = "unacceptable";
+      } else {
+        status = "Hazardous";
+        statusClass = "hazardous";
+      }
+
+      statusElement.textContent = status;
+      statusIndicator.className = `status-indicator status-${statusClass}`;
+    }
+
+    function updatePrediction(tds) {
+      if (tds === 0 || tds === '-') {
+        document.getElementById('predictionExcellent').textContent = '-';
+        document.getElementById('predictionGood').textContent = '-';
+        document.getElementById('predictionFair').textContent = '-';
+        document.getElementById('progressExcellent').style.width = '0%';
+        document.getElementById('progressGood').style.width = '0%';
+        document.getElementById('progressFair').style.width = '0%';
+        return;
+      }
+
+      // Simple prediction based on current TDS
+      let excellent, good, fair;
+
+      if (tds < 150) {
+        excellent = 85;
+        good = 12;
+        fair = 3;
+      } else if (tds < 250) {
+        excellent = 15;
+        good = 70;
+        fair = 15;
+      } else if (tds < 350) {
+        excellent = 5;
+        good = 60;
+        fair = 35;
+      } else {
+        excellent = 2;
+        good = 30;
+        fair = 68;
+      }
+
+      document.getElementById('predictionExcellent').textContent = excellent + '%';
+      document.getElementById('predictionGood').textContent = good + '%';
+      document.getElementById('predictionFair').textContent = fair + '%';
+
+      document.getElementById('progressExcellent').style.width = excellent + '%';
+      document.getElementById('progressGood').style.width = good + '%';
+      document.getElementById('progressFair').style.width = fair + '%';
+    }
+
+    function initializeCharts() {
+      // Charts will be initialized with real data
+    }
+
+    function updateCharts(data) {
+      if (!data || data.length === 0) {
+        // Clear chart if no data
+        const historyCtx = document.getElementById('historyChart');
+        if (historyChart) {
+          historyChart.destroy();
+        }
+        return;
+      }
+
+      const labels = data.map(item => item.timestamp);
+      const tdsData = data.map(item => item.tds);
+      const tempData = data.map(item => item.temperature);
+
+      // Update or create history chart
+      const historyCtx = document.getElementById('historyChart').getContext('2d');
+
+      if (historyChart) {
+        historyChart.destroy();
+      }
+
+      historyChart = new Chart(historyCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'TDS (ppm)',
+              data: tdsData,
+              borderColor: '#0078d7',
+              backgroundColor: 'rgba(0, 120, 215, 0.1)',
+              fill: true,
+              tension: 0.4,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Temperature (°C)',
+              data: tempData,
+              borderColor: '#f44336',
+              backgroundColor: 'rgba(244, 67, 54, 0.1)',
+              fill: true,
+              tension: 0.4,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          scales: {
+            x: {
+              grid: {
+                display: false
+              }
+            },
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              title: {
+                display: true,
+                text: 'TDS (ppm)'
+              }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              title: {
+                display: true,
+                text: 'Temperature (°C)'
+              },
+              grid: {
+                drawOnChartArea: false,
+              },
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) {
+                    label += ': ';
+                  }
+                  if (context.parsed.y !== null) {
+                    label += context.parsed.y;
+                    if (context.dataset.label === 'Temperature (°C)') {
+                      label += '°C';
+                    } else {
+                      label += ' ppm';
+                    }
+                  }
+                  return label;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function showQuestionnaire() {
+      questionnaireSection.style.display = 'block';
+      questionnaireResult.style.display = 'none';
+      document.getElementById('questionnaireContent').style.display = 'block';
+      // Scroll to questionnaire for better visibility
+      questionnaireSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideQuestionnaire() {
+      questionnaireSection.style.display = 'none';
+      // Reset form
+      document.querySelectorAll('input[type="radio"]').forEach(radio => {
+        radio.checked = false;
+      });
+    }
+
+    function showSensorForm() {
+      sensorInputForm.style.display = 'block';
+      sensorInputForm.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideSensorForm() {
+      sensorInputForm.style.display = 'none';
+      // Clear form
+      document.getElementById('tdsInput').value = '';
+      document.getElementById('tempInput').value = '';
+    }
+
+    async function submitSensorData() {
+      const tds = parseFloat(document.getElementById('tdsInput').value);
+      const temperature = parseFloat(document.getElementById('tempInput').value);
+
+      if (isNaN(tds) || isNaN(temperature)) {
+        showNotification('Please enter valid numbers for TDS and temperature.', 'error');
+        return;
+      }
+
+      if (tds < 0 || temperature < 0) {
+        showNotification('Values cannot be negative.', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch('/add_real_data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tds: tds,
+            temperature: temperature
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showNotification('Sensor data added successfully!', 'success');
+          hideSensorForm();
+          // Refresh data to show new reading
+          setTimeout(loadData, 1000);
+        } else {
+          showNotification('Failed to add sensor data: ' + result.message, 'error');
+        }
+      } catch (error) {
+        console.error('Error adding sensor data:', error);
+        showNotification('Error adding sensor data. Please try again.', 'error');
+      }
+    }
+
+    async function submitAssessment() {
+      // Collect form data
+      const formData = {
+        source: document.querySelector('input[name="source"]:checked')?.value,
+        change: document.querySelector('input[name="change"]:checked')?.value,
+        test: document.querySelector('input[name="test"]:checked')?.value,
+        filter: document.querySelector('input[name="filter"]:checked')?.value
+      };
+
+      // Validate that all questions are answered
+      if (!formData.source || !formData.change || !formData.test || !formData.filter) {
+        showNotification('Please answer all questions before submitting.', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch('/questionnaire', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // Display results
+          document.getElementById('assessmentScore').textContent = `Score: ${result.score}/100`;
+
+          let recommendationsHtml = '<p>Based on your responses:</p><ul>';
+          result.recommendations.forEach(rec => {
+            recommendationsHtml += `<li>${rec}</li>`;
+          });
+          recommendationsHtml += '</ul>';
+
+          document.getElementById('assessmentRecommendations').innerHTML = recommendationsHtml;
+
+          // Show result and hide questionnaire
+          document.getElementById('questionnaireContent').style.display = 'none';
+          questionnaireResult.style.display = 'block';
+
+          showNotification('Assessment submitted successfully!', 'success');
+        } else {
+          showNotification('Error submitting assessment: ' + result.error, 'error');
+        }
+      } catch (error) {
+        console.error('Error submitting assessment:', error);
+        showNotification('Error submitting assessment. Please try again.', 'error');
+      }
+    }
+
+    function hideResult() {
+      questionnaireResult.style.display = 'none';
+      questionnaireSection.style.display = 'none';
+    }
+
+    function showNotification(message, type) {
+      // Remove existing notifications
+      document.querySelectorAll('.notification').forEach(notification => {
+        notification.remove();
+      });
+
+      // Create notification element
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+
+      // Add to page
+      document.body.appendChild(notification);
+
+      // Remove after 5 seconds
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.remove();
+        }
+      }, 5000);
+    }
+  </script>
+</body>
+</html>
